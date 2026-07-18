@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Absensi Foto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E1A16;
+    --bg-2:#132922;
+    --page:#EEF2F0;
+    --surface:#FFFFFF;
+    --surface-2:#F5F7F5;
+    --line:#DDE3DF;
+    --ink:#0F1F1B;
+    --ink-soft:#57685F;
+    --primary:#0E7C66;
+    --primary-dark:#0A5C4C;
+    --primary-soft:#DCEFE9;
+    --accent:#F2A93B;
+    --accent-soft:#FCEBCB;
+    --danger:#D14B4B;
+    --danger-soft:#FBE3E1;
+    --radius:16px;
+    --shadow:0 10px 30px -12px rgba(15,31,27,0.25);
+    font-size:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--page);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Space Grotesk',sans-serif;
+    letter-spacing:-0.01em;
+  }
+  button{font-family:inherit;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+
+  /* ---------- HEADER ---------- */
+  .topbar{
+    background:linear-gradient(160deg,var(--bg) 0%,var(--bg-2) 100%);
+    color:#EAF3EF;
+    padding:clamp(16px,3vw,28px) clamp(16px,4vw,40px);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{
+    width:40px;height:40px;border-radius:11px;
+    background:var(--primary);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.18);
+    flex-shrink:0;
+  }
+  .brand-mark svg{width:22px;height:22px;}
+  .brand-text .eyebrow{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.14em;
+    color:#8FBBAE; margin:0 0 2px;
+  }
+  .brand-text h1{font-size:clamp(18px,2.2vw,22px); margin:0; font-weight:700;}
+  .clock{text-align:right;}
+  .clock .time{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:clamp(22px,3vw,30px);
+    font-weight:600;
+    font-variant-numeric: tabular-nums;
+    line-height:1;
+  }
+  .clock .date{font-size:12.5px;color:#9FC3B6;margin-top:4px;}
+
+  /* ---------- LAYOUT ---------- */
+  .wrap{
+    max-width:1180px;
+    margin:0 auto;
+    padding:clamp(16px,3vw,32px);
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:20px;
+  }
+  @media (min-width:900px){
+    .grid{grid-template-columns: minmax(0,1.15fr) minmax(0,1fr); align-items:start;}
+  }
+
+  .card{
+    background:var(--surface);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    border:1px solid var(--line);
+    overflow:hidden;
+  }
+  .card-head{
+    padding:18px 20px 0;
+  }
+  .card-head h2{font-size:15px; margin:0 0 2px; font-weight:700;}
+  .card-head p{margin:0 0 14px; font-size:13px; color:var(--ink-soft);}
+
+  /* ---------- CAMERA PANEL (signature element) ---------- */
+  .viewfinder{
+    position:relative;
+    margin:0 20px 20px;
+    border-radius:14px;
+    overflow:hidden;
+    background:#08120F;
+    aspect-ratio:4/3;
+  }
+  @media (min-width:900px){ .viewfinder{aspect-ratio:1/1;} }
+
+  .viewfinder video, .viewfinder img.captured{
+    width:100%; height:100%; object-fit:cover; display:block;
+  }
+  .viewfinder.mirror video{transform:scaleX(-1);}
+
+  .bracket{
+    position:absolute; width:26px; height:26px; border-color:var(--accent);
+    border-style:solid; opacity:0.9; pointer-events:none;
+  }
+  .bracket.tl{top:14px;left:14px;border-width:3px 0 0 3px;border-top-left-radius:6px;}
+  .bracket.tr{top:14px;right:14px;border-width:3px 3px 0 0;border-top-right-radius:6px;}
+  .bracket.bl{bottom:14px;left:14px;border-width:0 0 3px 3px;border-bottom-left-radius:6px;}
+  .bracket.br{bottom:14px;right:14px;border-width:0 3px 3px 0;border-bottom-right-radius:6px;}
+
+  .scan-line{
+    position:absolute; left:14px; right:14px; height:2px;
+    background:linear-gradient(90deg,transparent,var(--accent),transparent);
+    top:14px; opacity:0; pointer-events:none;
+  }
+  .scan-line.active{animation:scan 0.9s ease-in-out;}
+  @keyframes scan{
+    0%{top:14px;opacity:1;}
+    100%{top:calc(100% - 16px);opacity:0.2;}
+  }
+
+  .cam-status{
+    position:absolute; top:12px; left:50%; transform:translateX(-50%);
+    background:rgba(8,18,15,0.55); color:#EAF3EF; font-size:11.5px;
+    padding:5px 12px; border-radius:999px; display:flex; align-items:center; gap:6px;
+    backdrop-filter:blur(4px);
+  }
+  .cam-status .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);}
+  .cam-status .dot.live{background:#4ADE80; box-shadow:0 0 0 3px rgba(74,222,128,0.25);}
+
+  .cam-empty{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:10px; color:#9FC3B6; text-align:center; padding:20px; font-size:13px;
+  }
+
+  .cam-controls{
+    display:flex; gap:10px; padding:0 20px 20px; flex-wrap:wrap;
+  }
+
+  .btn{
+    border:none; border-radius:11px; padding:12px 18px; font-size:14px; font-weight:600;
+    cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    transition:transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+    min-height:46px;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn-primary{background:var(--primary); color:#fff; flex:1;}
+  .btn-primary:hover{background:var(--primary-dark);}
+  .btn-primary:disabled{background:#B9C7C2; cursor:not-allowed;}
+  .btn-ghost{background:var(--surface-2); color:var(--ink); border:1px solid var(--line);}
+  .btn-ghost:hover{background:#EAEFEC;}
+  .btn-icon{width:46px; padding:0; flex:none;}
+
+  /* ---------- FORM PANEL ---------- */
+  .form-body{padding:0 20px 20px; display:flex; flex-direction:column; gap:14px;}
+  label{font-size:13px; font-weight:600; color:var(--ink); display:block; margin-bottom:6px;}
+  input[type=text]{
+    width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--line);
+    font-size:15px; background:var(--surface-2); color:var(--ink);
+  }
+  input[type=text]:focus{outline:2px solid var(--primary); outline-offset:1px; background:#fff;}
+
+  .mode-toggle{display:flex; gap:8px;}
+  .mode-btn{
+    flex:1; padding:12px 10px; border-radius:10px; border:1.5px solid var(--line);
+    background:var(--surface-2); font-weight:700; font-size:13.5px; cursor:pointer;
+    color:var(--ink-soft); transition:all .12s ease; min-height:46px;
+  }
+  .mode-btn[aria-pressed="true"].masuk{background:var(--primary-soft); border-color:var(--primary); color:var(--primary-dark);}
+  .mode-btn[aria-pressed="true"].pulang{background:var(--danger-soft); border-color:var(--danger); color:var(--danger);}
+
+  .geo-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:10px;
+    padding:10px 12px; font-size:12.5px; color:var(--ink-soft);
+  }
+  .geo-row button{background:none;border:none;color:var(--primary);font-weight:700;font-size:12.5px;cursor:pointer;padding:4px;}
+
+  .msg{
+    border-radius:10px; padding:11px 13px; font-size:13px; display:none; gap:8px; align-items:flex-start;
+  }
+  .msg.show{display:flex;}
+  .msg.ok{background:var(--primary-soft); color:var(--primary-dark);}
+  .msg.err{background:var(--danger-soft); color:var(--danger);}
+  .msg.warn{background:var(--accent-soft); color:#8A5A00;}
+
+  /* ---------- HISTORY (this session) ---------- */
+  .history{padding:0 20px 20px;}
+  .history h3{font-size:13px; margin:0 0 10px; color:var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:0.06em;}
+  .history-empty{font-size:13px; color:var(--ink-soft); padding:14px; text-align:center; background:var(--surface-2); border-radius:10px;}
+  .h-item{
+    display:flex; align-items:center; gap:12px; padding:10px; border-radius:10px;
+    background:var(--surface-2); margin-bottom:8px;
+  }
+  .h-item img{width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;}
+  .h-item .meta{min-width:0;}
+  .h-item .meta .name{font-weight:700; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .h-item .meta .sub{font-size:12px; color:var(--ink-soft);}
+  .h-item .tag{
+    margin-left:auto; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:999px; flex-shrink:0;
+  }
+  .h-item .tag.masuk{background:var(--primary-soft); color:var(--primary-dark);}
+  .h-item .tag.pulang{background:var(--danger-soft); color:var(--danger);}
+
+  footer{
+    text-align:center; padding:24px; font-size:12px; color:var(--ink-soft);
+  }
+  footer code{background:var(--surface-2); padding:2px 6px; border-radius:5px;}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 0 1 2-2h1.2l.7-1.4A1 1 0 0 1 8.8 4h6.4a1 1 0 0 1 .9.6L16.8 6H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" stroke="#EAF3EF" stroke-width="1.6"/><circle cx="12" cy="13" r="3.2" stroke="#EAF3EF" stroke-width="1.6"/></svg>
+    </div>
+    <div class="brand-text">
+      <p class="eyebrow">Absensi digital</p>
+      <h1>Absen Foto</h1>
+    </div>
+  </div>
+  <div class="clock">
+    <div class="time" id="jam">--:--:--</div>
+    <div class="date" id="tanggal">-</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+
+    <!-- CAMERA -->
+    <div class="card">
+      <div class="card-head">
+        <h2>1. Ambil foto</h2>
+        <p>Posisikan wajah di tengah bingkai, lalu tekan potret.</p>
+      </div>
+      <div class="viewfinder mirror" id="viewfinder">
+        <video id="video" autoplay playsinline muted></video>
+        <img id="capturedImg" class="captured" style="display:none" alt="Hasil foto absen">
+        <div class="cam-empty" id="camEmpty" style="display:none">
+          <span>Kamera tidak dapat diakses.</span>
+          <span>Pastikan izin kamera aktif, atau gunakan tombol "Unggah foto" di bawah.</span>
+        </div>
+        <div class="bracket tl"></div><div class="bracket tr"></div>
+        <div class="bracket bl"></div><div class="bracket br"></div>
+        <div class="scan-line" id="scanLine"></div>
+        <div class="cam-status"><span class="dot" id="camDot"></span><span id="camStatusText">Menyalakan kamera…</span></div>
+      </div>
+      <canvas id="canvas" style="display:none"></canvas>
+      <input type="file" id="fileInput" accept="image/*" capture="user" style="display:none">
+      <div class="cam-controls">
+        <button class="btn btn-ghost btn-icon" id="btnSwitchCam" title="Ganti kamera" aria-label="Ganti kamera">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M4 7h3l1.5-2h7L17 7h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z" stroke="#0F1F1B" stroke-width="1.6"/><circle cx="12" cy="13" r="3" stroke="#0F1F1B" stroke-width="1.6"/></svg>
+        </button>
+        <button class="btn btn-primary" id="btnCapture">Potret</button>
+        <button class="btn btn-ghost" id="btnRetake" style="display:none">Ulangi</button>
+        <button class="btn btn-ghost" id="btnUpload">Unggah foto</button>
+      </div>
+    </div>
+
+    <!-- FORM -->
+    <div class="card">
+      <div class="card-head">
+        <h2>2. Lengkapi data</h2>
+        <p>Isi identitas lalu kirim absensi.</p>
+      </div>
+      <div class="form-body">
+        <div>
+          <label for="nama">Nama lengkap</label>
+          <input type="text" id="nama" placeholder="Contoh: Siti Rahma" autocomplete="name">
+        </div>
+        <div>
+          <label for="idpeg">NIP / NIS / ID (opsional)</label>
+          <input type="text" id="idpeg" placeholder="Contoh: 198501012024">
+        </div>
+        <div>
+          <label>Jenis absen</label>
+          <div class="mode-toggle">
+            <button type="button" class="mode-btn masuk" id="btnMasuk" aria-pressed="true">Masuk</button>
+            <button type="button" class="mode-btn pulang" id="btnPulang" aria-pressed="false">Pulang</button>
+          </div>
+        </div>
+        <div class="geo-row">
+          <span id="geoText">Lokasi belum diambil</span>
+          <button type="button" id="btnGeo">Ambil lokasi</button>
+        </div>
+        <div class="msg" id="msgBox"></div>
+        <button class="btn btn-primary" id="btnSubmit" disabled>Kirim absen</button>
+      </div>
+      <div class="history">
+        <h3>Riwayat sesi ini</h3>
+        <div id="historyList"><div class="history-empty">Belum ada absen yang dikirim pada sesi ini.</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  Data terkirim ke Google Spreadsheet melalui Apps Script.
+  Isi URL endpoint di variabel <code>APPS_SCRIPT_URL</code> pada berkas ini.
+</footer>
+
+<script>
+/* ====== KONFIGURASI ======
+   Ganti nilai di bawah dengan URL Web App Apps Script kamu
+   (lihat PANDUAN.md untuk cara mendapatkannya). */
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzOlhiQfj-7OTRguftzKRn-tedF8DGJQML3bZxfy6jdNqWQ3mzt8zAsZuO6PIsQuv_N/exec";
+
+/* ====== JAM & TANGGAL ====== */
+function tickClock(){
+  const now = new Date();
+  document.getElementById('jam').textContent = now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('tanggal').textContent = now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+tickClock();
+setInterval(tickClock,1000);
+
+/* ====== STATE ====== */
+let stream = null;
+let facingMode = 'user';
+let capturedDataUrl = null;
+let mode = 'Masuk';
+let coords = null;
+
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const capturedImg = document.getElementById('capturedImg');
+const viewfinder = document.getElementById('viewfinder');
+const camEmpty = document.getElementById('camEmpty');
+const camDot = document.getElementById('camDot');
+const camStatusText = document.getElementById('camStatusText');
+const scanLine = document.getElementById('scanLine');
+const fileInput = document.getElementById('fileInput');
+
+const btnCapture = document.getElementById('btnCapture');
+const btnRetake = document.getElementById('btnRetake');
+const btnSwitchCam = document.getElementById('btnSwitchCam');
+const btnUpload = document.getElementById('btnUpload');
+const btnSubmit = document.getElementById('btnSubmit');
+const btnMasuk = document.getElementById('btnMasuk');
+const btnPulang = document.getElementById('btnPulang');
+const btnGeo = document.getElementById('btnGeo');
+const geoText = document.getElementById('geoText');
+const msgBox = document.getElementById('msgBox');
+const namaInput = document.getElementById('nama');
+const idInput = document.getElementById('idpeg');
+const historyList = document.getElementById('historyList');
+
+/* ====== KAMERA: deteksi device & nyalakan ====== */
+async function startCamera(){
+  stopCamera();
+  camStatusText.textContent = 'Menyalakan kamera…';
+  camDot.classList.remove('live');
+  camEmpty.style.display = 'none';
+  video.style.display = 'block';
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode: facingMode, width:{ideal:960}, height:{ideal:960} },
+      audio:false
+    });
+    video.srcObject = stream;
+    camDot.classList.add('live');
+    camStatusText.textContent = facingMode === 'user' ? 'Kamera depan aktif' : 'Kamera belakang aktif';
+    viewfinder.classList.toggle('mirror', facingMode === 'user');
+  }catch(err){
+    video.style.display = 'none';
+    camEmpty.style.display = 'flex';
+    camStatusText.textContent = 'Kamera tidak tersedia';
+    camDot.classList.remove('live');
+  }
+}
+function stopCamera(){
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
+}
+
+btnSwitchCam.addEventListener('click', ()=>{
+  facingMode = facingMode === 'user' ? 'environment' : 'user';
+  fileInput.setAttribute('capture', facingMode);
+  startCamera();
+});
+
+/* ====== POTRET ====== */
+btnCapture.addEventListener('click', ()=>{
+  if(!stream) { fileInput.click(); return; }
+  const w = video.videoWidth, h = video.videoHeight;
+  if(!w || !h) return;
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if(facingMode === 'user'){ ctx.translate(w,0); ctx.scale(-1,1); }
+  ctx.drawImage(video,0,0,w,h);
+  capturedDataUrl = canvas.toDataURL('image/jpeg',0.85);
+  showCapturedPreview();
+
+  scanLine.classList.remove('active'); void scanLine.offsetWidth;
+  scanLine.classList.add('active');
+});
+
+function showCapturedPreview(){
+  capturedImg.src = capturedDataUrl;
+  capturedImg.style.display = 'block';
+  video.style.display = 'none';
+  btnCapture.style.display = 'none';
+  btnSwitchCam.style.display = 'none';
+  btnUpload.style.display = 'none';
+  btnRetake.style.display = 'inline-flex';
+  updateSubmitState();
+}
+
+btnRetake.addEventListener('click', ()=>{
+  capturedDataUrl = null;
+  capturedImg.style.display = 'none';
+  btnRetake.style.display = 'none';
+  btnCapture.style.display = 'inline-flex';
+  btnSwitchCam.style.display = 'inline-flex';
+  btnUpload.style.display = 'inline-flex';
+  if(stream){ video.style.display = 'block'; } else { startCamera(); }
+  updateSubmitState();
+});
+
+/* ====== UNGGAH FOTO (fallback perangkat tanpa kamera/izin) ====== */
+btnUpload.addEventListener('click', ()=> fileInput.click());
+fileInput.addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    capturedDataUrl = reader.result;
+    showCapturedPreview();
+  };
+  reader.readAsDataURL(file);
+});
+
+/* ====== MODE MASUK / PULANG ====== */
+btnMasuk.addEventListener('click', ()=> setMode('Masuk'));
+btnPulang.addEventListener('click', ()=> setMode('Pulang'));
+function setMode(m){
+  mode = m;
+  btnMasuk.setAttribute('aria-pressed', m === 'Masuk');
+  btnPulang.setAttribute('aria-pressed', m === 'Pulang');
+}
+
+/* ====== LOKASI (opsional) ====== */
+btnGeo.addEventListener('click', ()=>{
+  if(!navigator.geolocation){ geoText.textContent = 'Geolokasi tidak didukung browser ini'; return; }
+  geoText.textContent = 'Mengambil lokasi…';
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      coords = { lat: pos.coords.latitude.toFixed(6), lng: pos.coords.longitude.toFixed(6) };
+      geoText.textContent = `Lokasi: ${coords.lat}, ${coords.lng}`;
+    },
+    ()=>{ geoText.textContent = 'Gagal mengambil lokasi (izin ditolak)'; },
+    { enableHighAccuracy:true, timeout:8000 }
+  );
+});
+
+/* ====== VALIDASI ====== */
+namaInput.addEventListener('input', updateSubmitState);
+function updateSubmitState(){
+  btnSubmit.disabled = !(namaInput.value.trim().length > 0 && capturedDataUrl);
+}
+
+/* ====== KIRIM ABSEN ====== */
+btnSubmit.addEventListener('click', async ()=>{
+  hideMsg();
+  if(APPS_SCRIPT_URL.includes('PASTE_URL')){
+    showMsg('err','Endpoint Apps Script belum diatur. Lihat PANDUAN.md.');
+    return;
+  }
+  btnSubmit.disabled = true;
+  btnSubmit.textContent = 'Mengirim…';
+
+  const payload = {
+    nama: namaInput.value.trim(),
+    id: idInput.value.trim(),
+    tipe: mode,
+    waktu: new Date().toISOString(),
+    gambar: capturedDataUrl,
+    lat: coords ? coords.lat : '',
+    lng: coords ? coords.lng : ''
+  };
+
+  try{
+    const res = await fetch(APPS_SCRIPT_URL, { method:'POST', body: JSON.stringify(payload) });
+    const data = await res.json().catch(()=> ({ ok:true }));
+    if(data && data.ok === false) throw new Error(data.error || 'Gagal menyimpan');
+
+    showMsg('ok', `Absen ${mode.toLowerCase()} untuk ${payload.nama} berhasil dikirim, pukul ${new Date().toLocaleTimeString('id-ID')}.`);
+    addToHistory(payload);
+    resetForCapture();
+  }catch(err){
+    showMsg('err','Gagal mengirim absen. Periksa koneksi internet atau URL Apps Script, lalu coba lagi.');
+  }finally{
+    btnSubmit.textContent = 'Kirim absen';
+    updateSubmitState();
+  }
+});
+
+function resetForCapture(){
+  capturedDataUrl = null;
+  capturedImg.style.display = 'none';
+  btnRetake.style.display = 'none';
+  btnCapture.style.display = 'inline-flex';
+  btnSwitchCam.style.display = 'inline-flex';
+  btnUpload.style.display = 'inline-flex';
+  namaInput.value = '';
+  idInput.value = '';
+  if(stream){ video.style.display = 'block'; } else { startCamera(); }
+}
+
+function showMsg(type,text){
+  msgBox.className = 'msg show ' + type;
+  msgBox.textContent = text;
+}
+function hideMsg(){ msgBox.className = 'msg'; msgBox.textContent=''; }
+
+function addToHistory(payload){
+  const empty = historyList.querySelector('.history-empty');
+  if(empty) empty.remove();
+  const item = document.createElement('div');
+  item.className = 'h-item';
+  const time = new Date(payload.waktu).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  item.innerHTML = `
+    <img src="${payload.gambar}" alt="">
+    <div class="meta">
+      <div class="name">${escapeHtml(payload.nama)}</div>
+      <div class="sub">${time}${payload.id ? ' · '+escapeHtml(payload.id) : ''}</div>
+    </div>
+    <span class="tag ${payload.tipe==='Masuk'?'masuk':'pulang'}">${payload.tipe}</span>
+  `;
+  historyList.prepend(item);
+}
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ====== INIT ====== */
+startCamera();
+window.addEventListener('beforeunload', stopCamera);
+</script>
+</body>
+</html>
